@@ -1,6 +1,6 @@
 /**
  * 站点配置（你主要改这里）
- * - kind: cn(国内) | global(国外) | material(素材网)
+ * - kind: cn(国内) | global(国外) | material(素材网) | rates(汇率)
  * - tags: 用于搜索的关键词
  */
 window.SITE_GROUPS = [
@@ -33,6 +33,14 @@ window.SITE_GROUPS = [
       { name: "钰钰素材网", url: "https://www.yuyusucai.com/", desc: "素材资源集合站点", tags: ["素材", "设计", "资源"] },
       { name: "早班车素材网", url: "https://zbcsucai.cn/", desc: "素材资源集合站点", tags: ["素材", "设计", "资源"] },
     ],
+  },
+  {
+    id: "rates",
+    title: "实时汇率",
+    hint: "自动拉取当前汇率并定时刷新",
+    kind: "rates",
+    base: "CNY",
+    symbols: ["USD", "EUR", "JPY", "HKD", "GBP", "SGD", "KRW"],
   },
   {
     id: "global",
