@@ -8,10 +8,10 @@
   --shadow: 0 18px 50px rgba(0,0,0,.35);
   --accent: #7c5cff;
   --accent2: #22c55e;
-  --danger: #ff4d6d;
+  --accent3: #f59e0b;
   --chip: rgba(124,92,255,.18);
   --chip2: rgba(34,197,94,.18);
-  --chip3: rgba(255,77,109,.18);
+  --chip3: rgba(245,158,11,.18);
   --radius: 18px;
   --radius2: 14px;
 }
@@ -27,7 +27,7 @@
     --shadow: 0 18px 50px rgba(20,24,40,.14);
     --chip: rgba(124,92,255,.12);
     --chip2: rgba(34,197,94,.12);
-    --chip3: rgba(255,77,109,.12);
+    --chip3: rgba(245,158,11,.12);
   }
 }
 
@@ -325,8 +325,7 @@ h1{
 }
 .chip.kind-cn{ background: var(--chip); color: color-mix(in oklab, var(--text) 70%, var(--accent)); border-color: color-mix(in oklab, var(--border) 60%, var(--accent)); }
 .chip.kind-global{ background: var(--chip2); color: color-mix(in oklab, var(--text) 70%, var(--accent2)); border-color: color-mix(in oklab, var(--border) 60%, var(--accent2)); }
-.chip.kind-sg{ background: var(--chip3); color: color-mix(in oklab, var(--text) 70%, var(--danger)); border-color: color-mix(in oklab, var(--border) 60%, var(--danger)); }
-
+.chip.kind-material{ background: var(--chip3); color: color-mix(in oklab, var(--text) 70%, var(--accent3)); border-color: color-mix(in oklab, var(--border) 60%, var(--accent3)); }
 .favicon{
   width: 18px; height: 18px;
   border-radius: 6px;

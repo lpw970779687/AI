@@ -26,14 +26,14 @@ function siteText(site) {
 function kindLabel(kind) {
   if (kind === "cn") return "国内";
   if (kind === "global") return "国外";
-  if (kind === "sg") return "国网";
+  if (kind === "material") return "素材";
   return "其他";
 }
 
 function kindChipClass(kind) {
   if (kind === "cn") return "kind-cn";
   if (kind === "global") return "kind-global";
-  if (kind === "sg") return "kind-sg";
+  if (kind === "material") return "kind-material";
   return "";
 }
 

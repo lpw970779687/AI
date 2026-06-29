@@ -1,6 +1,6 @@
 /**
  * 站点配置（你主要改这里）
- * - kind: cn(国内) | global(国外) | sg(国网/内网/专项)
+ * - kind: cn(国内) | global(国外) | material(素材网)
  * - tags: 用于搜索的关键词
  */
 window.SITE_GROUPS = [
@@ -19,17 +19,19 @@ window.SITE_GROUPS = [
     ],
   },
   {
-    id: "sg",
-    title: "国网 AI（可自定义）",
-    hint: "放你们内部/国网相关的 AI 入口（如需要内网访问）",
-    kind: "sg",
+    id: "material",
+    title: "素材网",
+    hint: "常用素材站点合集",
+    kind: "material",
     sites: [
-      {
-        name: "国网 AI 入口（示例）",
-        url: "https://example.com/",
-        desc: "把这里改成你的“国网 AI”实际网址",
-        tags: ["国网", "内网", "SGCC", "专项"],
-      },
+      { name: "花雕素材网", url: "http://www.huadiaosucai.com/", desc: "素材资源集合站点", tags: ["素材", "设计", "资源"] },
+      { name: "肉包素材网", url: "http://roubaokr.com/", desc: "素材资源集合站点", tags: ["素材", "设计", "资源"] },
+      { name: "中二日记素材网", url: "https://www.zrscw.com/", desc: "素材资源集合站点", tags: ["素材", "设计", "资源"] },
+      { name: "小鑫素材网", url: "https://www.xiaoxinsc.com/", desc: "素材资源集合站点", tags: ["素材", "设计", "资源"] },
+      { name: "沙雕江湖素材网", url: "https://xhlmr.cn/blogs/article", desc: "素材资源集合站点", tags: ["素材", "设计", "资源"] },
+      { name: "无限素材网", url: "https://www.wuxiansucai.com/", desc: "素材资源集合站点", tags: ["素材", "设计", "资源"] },
+      { name: "钰钰素材网", url: "https://www.yuyusucai.com/", desc: "素材资源集合站点", tags: ["素材", "设计", "资源"] },
+      { name: "早班车素材网", url: "https://zbcsucai.cn/", desc: "素材资源集合站点", tags: ["素材", "设计", "资源"] },
     ],
   },
   {
