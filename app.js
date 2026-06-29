@@ -19,6 +19,72 @@ const RATE_LABELS = {
   SGD: "新加坡元",
   KRW: "韩元",
 };
+const COUNTRY_LABELS = {
+  America: "美国",
+  Malaysia: "马来西亚",
+  French: "法国",
+  England: "英国",
+  Australia: "澳大利亚",
+  Pakistan: "巴基斯坦",
+  Philippines: "菲律宾",
+  Canada: "加拿大",
+  Turkey: "土耳其",
+  India: "印度",
+  Nigeria: "尼日利亚",
+  Brazil: "巴西",
+  Japan: "日本",
+  Germany: "德国",
+  Italy: "意大利",
+  "South Korea": "韩国",
+  Afghanistan: "阿富汗",
+  Algeria: "阿尔及利亚",
+  Angola: "安哥拉",
+  Argentina: "阿根廷",
+  Austria: "奥地利",
+  Azerbaijan: "阿塞拜疆",
+  Belgium: "比利时",
+  Bolivia: "玻利维亚",
+  Cambodia: "柬埔寨",
+  Chile: "智利",
+  Danmark: "丹麦",
+  "Czech Republic": "捷克",
+  Cyprus: "塞浦路斯",
+  Nicuador: "厄瓜多尔",
+  Egypt: "埃及",
+  Finland: "芬兰",
+  Greece: "希腊",
+  Ghana: "加纳",
+  Hungary: "匈牙利",
+  Indonesia: "印度尼西亚",
+  Iraq: "伊拉克",
+  Ireland: "爱尔兰",
+  Israel: "以色列",
+  Kazakhstan: "哈萨克斯坦",
+  Kenya: "肯尼亚",
+  lebanon: "黎巴嫩",
+  Libya: "利比亚",
+  Mexico: "墨西哥",
+  Myanmar: "缅甸",
+  Netherlands: "荷兰",
+  "New Zealand": "新西兰",
+  Norway: "挪威",
+  Panama: "巴拿马",
+  Poland: "波兰",
+  Portugal: "葡萄牙",
+  Qatar: "卡塔尔",
+  Romania: "罗马尼亚",
+  "Saudi Arabia": "沙特阿拉伯",
+  Singapore: "新加坡",
+  "South Africa": "南非",
+  Spain: "西班牙",
+  Sweden: "瑞典",
+  Switzerland: "瑞士",
+  Taiwan: "中国台湾",
+  Thailand: "泰国",
+  Ukraine: "乌克兰",
+  "United Arab Emirates": "阿联酋",
+  Vietnam: "越南",
+};
 
 let compact = false;
 let lastRender = { matched: 0, total: 0, firstUrl: null };
@@ -75,6 +141,10 @@ function faviconUrl(url) {
 
 function currencyLabel(code) {
   return RATE_LABELS[code] || code;
+}
+
+function countryLabel(name) {
+  return COUNTRY_LABELS[name] || name;
 }
 
 function formatRateValue(value) {
@@ -268,8 +338,8 @@ function buildPlusPriceCards(group) {
     card.innerHTML = `
       <div class="priceTop">
         <div>
-          <div class="priceCountry">${escapeHtml(item.country)}</div>
-          <div class="priceRegion">${escapeHtml(item.currency)} · ChatGPT Plus</div>
+          <div class="priceCountry">${escapeHtml(countryLabel(item.country))}</div>
+          <div class="priceRegion">${escapeHtml(item.country)} · ${escapeHtml(item.currency)} · ChatGPT Plus</div>
         </div>
         <span class="chip kind-rates">${escapeHtml(kindLabel(group.kind))}</span>
       </div>
