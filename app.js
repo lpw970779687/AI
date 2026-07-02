@@ -6,10 +6,9 @@ const count = $("#count");
 const q = $("#q");
 const toggleCompact = $("#toggleCompact");
 const openFirst = $("#openFirst");
-const RATE_API = "https://open.er-api.com/v6/latest/CNY";
+const openAll = $("#openAll");
+const collapseAll = $("#collapseAll");
 const PLUS_PRICE_API = "https://fronted.familypro.io/familypro/resource/triple/price/ChatGPT_config_updated.json";
-const RATE_REFRESH_MS = 5 * 60 * 1000;
-const PLUS_PRICE_REFRESH_MS = 30 * 60 * 1000;
 const RATE_LABELS = {
   USD: "美元",
   EUR: "欧元",
@@ -88,12 +87,7 @@ const COUNTRY_LABELS = {
 
 let compact = false;
 let lastRender = { matched: 0, total: 0, firstUrl: null };
-let rateState = {
-  status: "idle",
-  data: null,
-  error: "",
-  loadedAt: null,
-};
+let collapsedSections = new Set();
 let plusPriceState = {
   status: "idle",
   data: null,
@@ -118,7 +112,7 @@ function kindLabel(kind) {
   if (kind === "cn") return "国内";
   if (kind === "global") return "国外";
   if (kind === "material") return "素材";
-  if (kind === "rates") return "汇率";
+  if (kind === "rates") return "价格";
   return "其他";
 }
 
@@ -166,12 +160,6 @@ function getCnyPerCurrency(currencyCode) {
   const code = String(currencyCode || "").toUpperCase();
   if (!code || code === "CNY") return 1;
 
-  const liveRates = rateState.data?.rates || {};
-  const liveRate = liveRates[code];
-  if (Number.isFinite(liveRate) && liveRate > 0) {
-    return 1 / liveRate;
-  }
-
   const fallbackRates = plusPriceState.data?.exchange_rates || {};
   const fallback = fallbackRates[`CNY_PER_${code}`];
   if (Number.isFinite(fallback) && fallback > 0) {
@@ -192,72 +180,6 @@ function getPriceLabel(group, statusText, updatedText) {
     <h2>${escapeHtml(group.title)}</h2>
     <span class="badge" title="${escapeAttr(group.hint || "")}">${escapeHtml(statusText)} · ${escapeHtml(updatedText)}</span>
   `;
-}
-
-function buildRateCards(group) {
-  const cards = document.createElement("div");
-  cards.className = "rateCards";
-
-  if (rateState.status === "loading" || rateState.status === "idle") {
-    const codes = group.symbols || [];
-    for (const code of codes) {
-      const card = document.createElement("div");
-      card.className = "rateCard rateSkeleton";
-      card.innerHTML = `
-        <div class="rateTop">
-          <div>
-            <div class="rateCode">${escapeHtml(code)}</div>
-            <div class="rateLabel">${escapeHtml(currencyLabel(code))}</div>
-          </div>
-          <span class="chip kind-rates">${escapeHtml(kindLabel(group.kind))}</span>
-        </div>
-        <div class="rateValue">--</div>
-        <div class="rateMeta">正在获取最新数据</div>
-      `;
-      cards.appendChild(card);
-    }
-    return cards;
-  }
-
-  if (rateState.status === "error") {
-    const card = document.createElement("div");
-    card.className = "rateCard rateError";
-    card.innerHTML = `
-      <div class="rateTop">
-        <div>
-          <div class="rateCode">汇率加载失败</div>
-          <div class="rateLabel">请稍后重试</div>
-        </div>
-        <span class="chip kind-rates">${escapeHtml(kindLabel(group.kind))}</span>
-      </div>
-      <div class="rateErrorText">${escapeHtml(rateState.error || "无法获取汇率数据")}</div>
-    `;
-    cards.appendChild(card);
-    return cards;
-  }
-
-  const data = rateState.data || {};
-  const base = data.base_code || group.base || "CNY";
-  const rates = data.rates || {};
-  for (const code of group.symbols || []) {
-    const rate = rates[code];
-    const card = document.createElement("div");
-    card.className = "rateCard";
-    card.innerHTML = `
-      <div class="rateTop">
-        <div>
-          <div class="rateCode">${escapeHtml(code)}</div>
-          <div class="rateLabel">${escapeHtml(currencyLabel(code))}</div>
-        </div>
-        <span class="chip kind-rates">${escapeHtml(kindLabel(group.kind))}</span>
-      </div>
-      <div class="rateValue">1 ${escapeHtml(base)} = ${escapeHtml(formatRateValue(rate))} ${escapeHtml(code)}</div>
-      <div class="rateMeta">${escapeHtml(base)} 作为基准自动换算</div>
-    `;
-    cards.appendChild(card);
-  }
-
-  return cards;
 }
 
 function buildPlusPriceCards(group) {
@@ -353,7 +275,7 @@ function buildPlusPriceCards(group) {
   return cards;
 }
 
-function buildRatesSection(group) {
+function buildPlusPriceSection(group) {
   const section = document.createElement("section");
   section.className = "section";
   section.dataset.groupId = group.id;
@@ -364,13 +286,13 @@ function buildRatesSection(group) {
   const title = document.createElement("div");
   title.className = "sectionTitle";
 
-  const updatedText = rateState.loadedAt
-    ? new Date(rateState.loadedAt).toLocaleString("zh-CN", { hour12: false })
+  const updatedText = plusPriceState.loadedAt
+    ? new Date(plusPriceState.loadedAt).toLocaleString("zh-CN", { hour12: false })
     : "未更新";
   const statusText =
-    rateState.status === "loading" ? "加载中" :
-    rateState.status === "error" ? "失败" :
-    rateState.status === "loaded" ? "已更新" :
+    plusPriceState.status === "loading" ? "加载中" :
+    plusPriceState.status === "error" ? "失败" :
+    plusPriceState.status === "loaded" ? "已更新" :
     "待加载";
 
   title.innerHTML = getPriceLabel(group, statusText, updatedText);
@@ -378,38 +300,30 @@ function buildRatesSection(group) {
   const actions = document.createElement("div");
   actions.className = "sectionActions";
 
+  const collapseBtn = document.createElement("button");
+  collapseBtn.type = "button";
+  collapseBtn.className = "linkBtn";
+  collapseBtn.textContent = "折叠/展开";
+  collapseBtn.dataset.action = "collapse";
+  collapseBtn.addEventListener("click", () => {
+    setSectionCollapsed(section, !section.classList.contains("is-collapsed"));
+  });
+
   const refreshBtn = document.createElement("button");
   refreshBtn.type = "button";
   refreshBtn.className = "linkBtn";
-  refreshBtn.textContent = "刷新数据";
-  refreshBtn.title = "重新拉取实时汇率和 GPT Plus 地区价格";
+  refreshBtn.textContent = "刷新价格";
+  refreshBtn.title = "重新拉取 ChatGPT Plus 地区价格";
   refreshBtn.addEventListener("click", () => {
-    refreshPricing(true);
+    loadPlusPrices(true);
   });
 
   actions.appendChild(refreshBtn);
+  actions.appendChild(collapseBtn);
   head.appendChild(title);
   head.appendChild(actions);
   section.appendChild(head);
 
-  const moduleWrap = document.createElement("div");
-  moduleWrap.className = "moduleWrap";
-
-  const fxBlock = document.createElement("div");
-  fxBlock.className = "moduleBlock";
-  fxBlock.innerHTML = `
-    <div class="moduleBlockHead">
-      <div>
-        <div class="moduleTitle">实时汇率</div>
-        <div class="moduleMeta">以 CNY 为基准，供下方价格换算使用</div>
-      </div>
-      <span class="chip kind-rates">${escapeHtml(kindLabel(group.kind))}</span>
-    </div>
-  `;
-  fxBlock.appendChild(buildRateCards(group));
-
-  const priceHead = document.createElement("div");
-  priceHead.className = "moduleBlockHead moduleBlockHeadCompact";
   const priceUpdatedText = plusPriceState.loadedAt
     ? new Date(plusPriceState.loadedAt).toLocaleString("zh-CN", { hour12: false })
     : "未更新";
@@ -418,22 +332,18 @@ function buildRatesSection(group) {
     plusPriceState.status === "error" ? "失败" :
     plusPriceState.status === "loaded" ? "已更新" :
     "待加载";
+  const priceHead = document.createElement("div");
+  priceHead.className = "sectionSubhead";
   priceHead.innerHTML = `
     <div>
       <div class="moduleTitle">ChatGPT Plus 地区价格</div>
-      <div class="moduleMeta">公开价格配置 + 当前实时汇率，结果按人民币约值排序</div>
+      <div class="moduleMeta">公开价格配置，按人民币约值排序</div>
     </div>
     <span class="badge">${escapeHtml(priceStatusText)} · ${escapeHtml(priceUpdatedText)}</span>
   `;
-
-  const priceBlock = document.createElement("div");
-  priceBlock.className = "moduleBlock";
-  priceBlock.appendChild(priceHead);
-  priceBlock.appendChild(buildPlusPriceCards(group));
-
-  moduleWrap.appendChild(fxBlock);
-  moduleWrap.appendChild(priceBlock);
-  section.appendChild(moduleWrap);
+  section.appendChild(priceHead);
+  section.appendChild(buildPlusPriceCards(group));
+  setSectionCollapsed(section, collapsedSections.has(group.id));
   return { section, matched: 0, total: 0, firstUrl: null };
 }
 
@@ -464,6 +374,10 @@ function buildSection(group, query) {
   collapseBtn.type = "button";
   collapseBtn.className = "linkBtn";
   collapseBtn.textContent = "折叠/展开";
+  collapseBtn.dataset.action = "collapse";
+  collapseBtn.addEventListener("click", () => {
+    setSectionCollapsed(section, !section.classList.contains("is-collapsed"));
+  });
 
   const openAllBtn = document.createElement("button");
   openAllBtn.type = "button";
@@ -515,15 +429,11 @@ function buildSection(group, query) {
 
   section.appendChild(cards);
 
-  let collapsed = false;
-  collapseBtn.addEventListener("click", () => {
-    collapsed = !collapsed;
-    cards.style.display = collapsed ? "none" : "grid";
-  });
-
   openAllBtn.addEventListener("click", () => {
     for (const s of filtered) window.open(s.url, "_blank", "noopener,noreferrer");
   });
+
+  setSectionCollapsed(section, collapsedSections.has(group.id));
 
   return { section, matched: filtered.length, total: sites.length, firstUrl: filtered[0]?.url ?? null };
 }
@@ -538,7 +448,7 @@ function render() {
 
   for (const group of SITE_GROUPS) {
     const built = group.kind === "rates"
-      ? buildRatesSection(group)
+      ? buildPlusPriceSection(group)
       : buildSection(group, query);
     app.appendChild(built.section);
     matched += built.matched;
@@ -548,50 +458,14 @@ function render() {
 
   lastRender = { matched, total, firstUrl };
   empty.style.display = "none";
-  count.textContent = `共 ${matched} / ${total} 个站点 · 1 个实时汇率模块`;
+  count.textContent = `共 ${matched} / ${total} 个站点 · 1 个 ChatGPT Plus 价格模块`;
+  syncCollapseAllButton();
 }
 
 function openFirstResult() {
   if (lastRender.firstUrl) {
     window.open(lastRender.firstUrl, "_blank", "noopener,noreferrer");
   }
-}
-
-async function loadRates(silent = false) {
-  if (!silent) {
-    rateState = { ...rateState, status: "loading", error: "" };
-    render();
-  } else {
-    rateState = { ...rateState, status: "loading", error: "" };
-  }
-
-  try {
-    const response = await fetch(RATE_API, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (data.result !== "success") {
-      throw new Error(data["error-type"] || "汇率接口返回异常");
-    }
-
-    rateState = {
-      status: "loaded",
-      data,
-      error: "",
-      loadedAt: Date.now(),
-    };
-  } catch (error) {
-    rateState = {
-      status: "error",
-      data: null,
-      error: error instanceof Error ? error.message : "无法获取汇率数据",
-      loadedAt: rateState.loadedAt,
-    };
-  }
-
-  render();
 }
 
 async function loadPlusPrices(silent = false) {
@@ -602,8 +476,11 @@ async function loadPlusPrices(silent = false) {
     plusPriceState = { ...plusPriceState, status: "loading", error: "" };
   }
 
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 10000);
+
   try {
-    const response = await fetch(PLUS_PRICE_API, { cache: "no-store" });
+    const response = await fetch(PLUS_PRICE_API, { cache: "no-store", signal: controller.signal });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
@@ -620,19 +497,25 @@ async function loadPlusPrices(silent = false) {
       loadedAt: Date.now(),
     };
   } catch (error) {
+    const message = error instanceof DOMException && error.name === "AbortError"
+      ? "请求超时"
+      : error instanceof Error
+        ? error.message
+        : "无法获取地区价格数据";
     plusPriceState = {
       status: "error",
       data: null,
-      error: error instanceof Error ? error.message : "无法获取地区价格数据",
+      error: message,
       loadedAt: plusPriceState.loadedAt,
     };
+  } finally {
+    window.clearTimeout(timer);
   }
 
   render();
 }
 
 function refreshPricing(silent = false) {
-  loadRates(silent);
   loadPlusPrices(silent);
 }
 
@@ -649,6 +532,38 @@ function escapeAttr(str) {
   return escapeHtml(str).replaceAll("\n", " ");
 }
 
+function setSectionCollapsed(section, collapsed) {
+  const isCollapsed = Boolean(collapsed);
+  section.classList.toggle("is-collapsed", isCollapsed);
+  section.dataset.collapsed = isCollapsed ? "true" : "false";
+
+  const bodyNodes = Array.from(section.children).slice(1);
+  for (const node of bodyNodes) {
+    node.hidden = isCollapsed;
+  }
+
+  const collapseBtn = section.querySelector('[data-action="collapse"]');
+  if (collapseBtn) {
+    collapseBtn.textContent = isCollapsed ? "展开" : "折叠/展开";
+  }
+
+  const groupId = section.dataset.groupId;
+  if (!groupId) return;
+  if (isCollapsed) {
+    collapsedSections.add(groupId);
+  } else {
+    collapsedSections.delete(groupId);
+  }
+  syncCollapseAllButton();
+}
+
+function syncCollapseAllButton() {
+  if (!collapseAll) return;
+  const sections = Array.from(document.querySelectorAll(".section"));
+  const shouldCollapse = sections.some((section) => !section.classList.contains("is-collapsed"));
+  collapseAll.textContent = shouldCollapse ? "全部折叠" : "全部展开";
+}
+
 q.addEventListener("input", render);
 toggleCompact.addEventListener("click", () => {
   compact = !compact;
@@ -656,6 +571,19 @@ toggleCompact.addEventListener("click", () => {
   render();
 });
 openFirst.addEventListener("click", openFirstResult);
+openAll.addEventListener("click", () => {
+  for (const card of document.querySelectorAll(".card")) {
+    const url = card.dataset.url;
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+  }
+});
+collapseAll.addEventListener("click", () => {
+  const sections = Array.from(document.querySelectorAll(".section"));
+  const collapse = sections.some((section) => !section.classList.contains("is-collapsed"));
+  for (const section of sections) {
+    setSectionCollapsed(section, collapse);
+  }
+});
 
 window.addEventListener("keydown", (e) => {
   if (e.key === "/" && document.activeElement !== q) {
@@ -678,5 +606,3 @@ window.addEventListener("keydown", (e) => {
 
 render();
 refreshPricing();
-setInterval(() => loadRates(true), RATE_REFRESH_MS);
-setInterval(() => loadPlusPrices(true), PLUS_PRICE_REFRESH_MS);

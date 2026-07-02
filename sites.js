@@ -1,6 +1,6 @@
 /**
  * 站点配置（你主要改这里）
- * - kind: cn(国内) | global(国外) | material(素材网) | rates(汇率)
+ * - kind: cn(国内) | global(国外) | material(素材网) | rates(价格模块)
  * - tags: 用于搜索的关键词
  */
 window.SITE_GROUPS = [
@@ -36,8 +36,8 @@ window.SITE_GROUPS = [
   },
   {
     id: "rates",
-    title: "实时汇率",
-    hint: "自动拉取当前汇率并定时刷新",
+    title: "ChatGPT Plus 地区价格",
+    hint: "展示 ChatGPT Plus 各地区价格",
     kind: "rates",
     base: "CNY",
     symbols: ["USD", "EUR", "JPY", "HKD", "GBP", "SGD", "KRW"],
